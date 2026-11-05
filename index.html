@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Evan</title>
+<link rel="icon" type="image/png" href="./icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Evan">
+<link rel="apple-touch-icon" href="./icon.png">
+
+<style>
+:root {
+    --bg-color: #f5f5f7;
+    --text-main: #1d1d1f;
+    --text-sub: #86868b;
+    --icon-bg: #ffffff;
+    --accent: #007aff;
+    --font-family: 'Segoe UI', SimSun, 宋体, serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 屏幕容器 */
+.screen {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    animation: fadeIn 0.3s ease;
+}
+.screen.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+/* 1. 桌面主页 */
+#home-screen {
+    padding: 40px 20px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    align-content: start;
+}
+.app-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.app-icon:active { transform: scale(0.9); }
+.icon-box {
+    width: 60px; height: 60px;
+    background: var(--icon-bg);
+    border-radius: 16px;
+    display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.icon-box svg { width: 32px; height: 32px; fill: var(--text-main); }
+
+/* 2. 聊天界面 */
+#chat-screen { background: var(--bg-color); }
+.chat-header {
+    padding: 15px;
+    display: flex; align-items: center;
+    background: rgba(255,255,255,0.8); backdrop-filter: blur(10px);
+    font-weight: bold; border-bottom: 1px solid #e5e5ea;
+}
+.back-btn { margin-right: 15px; cursor: pointer; padding: 5px; }
+.chat-messages {
+    flex: 1; padding: 15px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 12px;
+}
+.msg-row { display: flex; width: 100%; }
+.msg-row.user { justify-content: flex-end; }
+.msg-row.bot { justify-content: flex-start; }
+.bubble {
+    max-width: 75%; padding: 10px 14px; border-radius: 18px;
+    font-size: 15px; line-height: 1.4; word-wrap: break-word;
+}
+.msg-row.user .bubble { background: var(--text-main); color: #fff; border-bottom-right-radius: 4px; }
+.msg-row.bot .bubble { background: #fff; color: var(--text-main); border-bottom-left-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+
+/* 引用回复样式 */
+.quote-box {
+    font-size: 12px; color: var(--text-sub);
+    background: rgba(0,0,0,0.05); padding: 6px; border-radius: 6px;
+    margin-bottom: 6px; border-left: 2px solid var(--text-sub);
+}
+
+.chat-input-area {
+    padding: 15px; background: #fff; display: flex; align-items: center; justify-content: center;
+}
+.talk-btn {
+    width: 100%; padding: 12px; border-radius: 12px;
+    background: var(--text-main); color: #fff; border: none;
+    font-family: var(--font-family); font-size: 16px;
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    cursor: pointer; transition: background 0.2s;
+}
+.talk-btn:active { background: #333; }
+.talk-btn svg { width: 20px; height: 20px; fill: #fff; }
+
+/* 3. 设置界面 */
+#settings-screen { background: #fff; padding: 20px; overflow-y: auto; }
+.setting-group { margin-bottom: 25px; }
+.setting-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+.input-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 14px; }
+.input-row input[type="number"], .input-row input[type="text"] {
+    width: 100px; padding: 8px; border: 1px solid #ccc; border-radius: 6px;
+    font-family: var(--font-family); text-align: right;
+}
+textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: var(--font-family); margin-bottom: 10px; resize: none; }
+.btn { padding: 10px 15px; background: #eee; border: none; border-radius: 6px; font-family: var(--font-family); cursor: pointer; margin-right: 10px; }
+.btn.primary { background: var(--text-main); color: #fff; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- 1. 桌面主页 -->
+<div id="home-screen" class="screen active">
+    <!-- 聊天 APP -->
+    <div class="app-icon" onclick="navTo('chat-screen')">
+        <div class="icon-box">
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"></path></svg>
+        </div>
+    </div>
+    <!-- 设置 APP -->
+    <div class="app-icon" onclick="navTo('settings-screen')">
+        <div class="icon-box">
+            <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"></path></svg>
+        </div>
+    </div>
+    <!-- 导出数据 APP -->
+    <div class="app-icon" onclick="exportData()">
+        <div class="icon-box">
+            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"></path></svg>
+        </div>
+    </div>
+    <!-- 导入数据 APP -->
+    <div class="app-icon" onclick="importData()">
+        <div class="icon-box" style="background:#eee;">
+            <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"></path></svg>
+        </div>
+    </div>
+</div>
+
+<!-- 2. 聊天界面 -->
+<div id="chat-screen" class="screen">
+    <div class="chat-header">
+        <div class="back-btn" onclick="navTo('home-screen')">←</div>
+        <div>对话</div>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+        <!-- 消息动态渲染于此 -->
+    </div>
+    <div class="chat-input-area">
+        <!-- 核心要求：点击说话触发，无需输入 -->
+        <button class="talk-btn" onclick="triggerUserClick()">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-0.48 6-3.3 6-6.72h-1.7z"></path></svg>
+            点击说话
+        </button>
+    </div>
+</div>
+
+<!-- 3. 设置界面 -->
+<div id="settings-screen" class="screen">
+    <div class="chat-header">
+        <div class="back-btn" onclick="navTo('home-screen')">←</div>
+        <div>设置</div>
+    </div>
+    <div style="padding: 20px;">
+        <div class="setting-group">
+            <div class="setting-title">回复库 (字卡)</div>
+            <textarea id="cards-input" placeholder="每行一个回复字卡..."></textarea>
+            <button class="btn primary" onclick="saveCards()">保存字卡</button>
+        </div>
+        
+        <div class="setting-group">
+            <div class="setting-title">触发机制</div>
+            <div class="input-row">
+                <span>点击说话后延迟 (秒)</span>
+                <input type="number" id="delay-sec" value="3" min="1">
+            </div>
+            <div class="input-row">
+                <span>主动消息间隔 (分)</span>
+                <input type="number" id="active-min" value="10" min="1">
+            </div>
+            <div class="input-row">
+                <span>已读不回概率 (0-100)</span>
+                <input type="number" id="ignore-rate" value="20" min="0" max="100">
+            </div>
+            <button class="btn primary" onclick="saveSettings()">保存设置</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// —— 核心数据模型与本地存储 ——
+const defaultState = {
+    cards: ['早安呀', '今天过得怎么样？', '我有点困了~', '你在干嘛呢？', '哈哈哈', '确实是这样', '等下我有个会', '晚点聊哦', '好呀好呀', '吃了吗？'],
+    settings: {
+        delaySec: 3,       // 触发延迟 (秒)
+        activeMin: 10,     // 主动消息间隔 (分)
+        ignoreRate: 20     // 已读不回概率 (百分比)
+    },
+    messages: []           // { role: 'user'|'bot', text: string, quote?: string }
+};
+
+let state = JSON.parse(localStorage.getItem("my_app_data")) || defaultState;
+let activeTimer;
+
+// 初始化视图
+function init() {
+    renderMessages();
+    document.getElementById("cards-input").value = state.cards.join('\n');
+    document.getElementById("delay-sec").value = state.settings.delaySec;
+    document.getElementById("active-min").value = state.settings.activeMin;
+    document.getElementById("ignore-rate").value = state.settings.ignoreRate;
+    
+    // 启动主动发送消息的定时器
+    setActiveMessageTimer();
+}
+
+// 保存数据
+function saveState() {
+    localStorage.setItem("my_app_data", JSON.stringify(state));
+}
+
+// 导航
+function navTo(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+}
+
+// 保存设置与字卡
+function saveCards() {
+    const val = document.getElementById("cards-input").value;
+    state.cards = val.split('\n').filter(t => t.trim() !== "");
+    saveState();
+    alert("字卡已保存");
+}
+
+function saveSettings() {
+    state.settings.delaySec = parseInt(document.getElementById("delay-sec").value) || 3;
+    state.settings.activeMin = parseInt(document.getElementById("active-min").value) || 10;
+    state.settings.ignoreRate = parseInt(document.getElementById("ignore-rate").value) || 0;
+    saveState();
+    setActiveMessageTimer(); // 重新设定主动消息计时器
+    alert("设置已保存");
+}
+
+// —— 聊天核心逻辑 ——
+function renderMessages() {
+    const container = document.getElementById("chat-messages");
+    container.innerHTML = state.messages.map(m => `
+        <div class="msg-row ${m.role}">
+            <div class="bubble">
+                ${m.quote ? `<div class="quote-box">${m.quote}</div>` : ''}
+                ${m.text}
+            </div>
+        </div>
+    `).join('');
+    container.scrollTop = container.scrollHeight;
+}
+
+// 要求 3：点击说话按钮触发（无需用户输入）
+function triggerUserClick() {
+    // 记录用户操作（只记录点击动作，不记录具体内容）
+    state.messages.push({ role: 'user', text: '[点击了说话]' });
+    renderMessages();
+    saveState();
+
+    // 要求 5：已读不回
+    const isIgnore = Math.random() * 100 < state.settings.ignoreRate;
+    if (isIgnore) {
+        console.log("Bot ignored the message.");
+        return;
+    }
+
+    // 要求 2：模拟真人回复延迟
+    const delay = Math.random() * state.settings.delaySec * 1000;
+    setTimeout(() => {
+        generateBotReply();
+    }, delay);
+}
+
+// 要求 1：随机抽取 1-3 条消息 + 要求 6：引用回复
+function generateBotReply() {
+    if (state.cards.length === 0) return;
+
+    // 1-3 条随机回复
+    const count = Math.floor(Math.random() * 3) + 1;
+
+    // 要求 6：随机获取近 10 条内用户的消息进行引用（这里筛选用户发的）
+    const recentUserMsgs = state.messages.filter(m => m.role === 'user').slice(-10);
+    let quoteText = null;
+    
+    if (recentUserMsgs.length > 0 && Math.random() > 0.5) { // 50% 概率引用
+        const randomQuote = recentUserMsgs[Math.floor(Math.random() * recentUserMsgs.length)];
+        quoteText = randomQuote.text;
+    }
+
+    for (let i = 0; i < count; i++) {
+        const randomCard = state.cards[Math.floor(Math.random() * state.cards.length)];
+        // 第一条带引用
+        state.messages.push({
+            role: 'bot',
+            text: randomCard,
+            quote: (i === 0) ? quoteText : null
+        });
+    }
+    renderMessages();
+    saveState();
+}
+
+// 要求 4：主动发送消息（分钟级）
+function setActiveMessageTimer() {
+    if (activeTimer) clearTimeout(activeTimer);
+
+    // 将分钟转为毫秒，并在设定时间内随机
+    const minMs = state.settings.activeMin * 60 * 1000;
+    const maxMs = (state.settings.activeMin + 5) * 60 * 1000; // 延迟最多加 5 分钟作为随机范围
+    const randomMs = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+
+    activeTimer = setTimeout(() => {
+        generateBotReply(); // 主动触发机器人回复
+        setActiveMessageTimer(); // 递归调用，生成下一次
+    }, randomMs);
+}
+
+// —— 导入导出机制 ——
+function exportData() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "my_site_data.json");
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+function importData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = event => {
+            try {
+                const importedState = JSON.parse(event.target.result);
+                if (importedState.cards && importedState.settings) {
+                    state = importedState;
+                    saveState();
+                    init(); // 重新渲染
+                    alert("导入成功");
+                }
+            } catch (err) {
+                alert("数据格式错误");
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+// 启动应用
+init();
+</script>
+</body>
+</html>
